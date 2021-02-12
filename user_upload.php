@@ -16,39 +16,86 @@ $dbConfigs = [
     'port' => $_ENV['DB_PORT']
 ];
 
+// Identify command line directives
 $shortOpts = "h";
 $shortOpts .= "u";
 $shortOpts .= "p";
+
 $longOpts = array(
     "file:",
     "create_table",
-    "dry_run"
+    "dry_run",
+    "help"
 );
 
+$directives = [
+    "--file <file>" => "this is the name of the CSV to be parsed",
+    "--create_table" => "this will cause the MySQL users table to be built (and no further action will be taken)",
+    "--dry_run" => "this will be used with the --file directive in case we want to run the script but not insert into the DB. All other functions will be executed, but the database won't be altered",
+    '-u' => "MySQL username",
+    '-p' => "MySQL password",
+    '-h' => "MySQL host",
+    "--help" => "output the above list of directives with details."
+];
+
+// Get command line options
 $options = getopt($shortOpts, $longOpts);
+
+//connectDb($dbConfigs);
+
+// Command option -u
+if (isset($options['u'])) {
+    fwrite(STDOUT, "MYSQL username: ${dbConfigs['username']}\n");
+}
+
+// Command option -h
+if (isset($options['h'])) {
+    fwrite(STDOUT, "MYSQL host: ${dbConfigs['host']}\n");
+}
+
+// Command option -p
+if (isset($options['p'])) {
+    fwrite(STDOUT, "MYSQL password: ${dbConfigs['password']}\n");
+}
+
+// Command option --help
+if (isset($options['help'])) {
+    $output = "";
+
+    foreach ($directives as $key => $value) {
+        $output .= "${key}\t${value}\n";
+    }
+    fwrite(STDOUT, $output);
+}
 
 function connectDb($configs)
 {
     try {
-        echo("Connecting to database...\n");
+        fwrite(STDOUT, "Connecting to database...\n");
 
         $connection = mysqli_connect($configs['host'], $configs['username'], $configs['password'], $configs['database'], $configs['port']);
 
         if (isConnected()) {
-            echo("Database connected.\n");
+            fwrite(STDOUT, "Database connected!\n");
             return $connection;
         }
     } catch (Exception $exception) {
-        die('Connection failed.');
+        fwrite(STDERR, "Connection failed!\n");
     }
 
 }
 
 function disconnectDb($connection)
 {
-    if (isConnected()) {
-        $connection->close();
+    try {
+        if (isConnected()) {
+            $connection->close();
+            fwrite(STDERR, "Database disconnected!\n");
+        }
+    } catch (Exception $exception) {
+        fwrite(STDERR, "Disconnection failed!\n");
     }
+
 }
 
 function isConnected()
