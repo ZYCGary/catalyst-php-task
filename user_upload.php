@@ -20,5 +20,33 @@ function CloseCon($conn)
     $conn->close();
 }
 
-OpenCon();
+function getDataFromFile($file)
+{
+    $data = [];
+
+    $csvFile = fopen($file, "r") or die("Invalid input file.\n");
+
+    // Skip the first line
+    fgetcsv($csvFile);
+
+    while (($line = fgetcsv($csvFile)) !== FALSE) {
+        $data[] = formatData($line);
+    }
+
+    return $data;
+}
+
+function formatData($data)
+{
+    $data[0] = ucfirst(strtolower(trim($data[0])));
+    $data[1] = ucfirst(strtolower(trim($data[1])));
+    $data[2] = strtolower(trim($data[2]));
+
+    return $data;
+}
+
+$data = getDataFromFile('users.csv');
+
+print_r($data);
+
 
