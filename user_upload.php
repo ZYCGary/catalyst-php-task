@@ -68,6 +68,17 @@ if (isset($options['help'])) {
     fwrite(STDOUT, $output);
 }
 
+if (isset($options['create_table'])) {
+    createTable($dbConfigs);
+}
+
+
+/**
+ * Connect to MYSQL database.
+ *
+ * @param $configs : Database configurations.
+ * @return false|mysqli
+ */
 function connectDb($configs)
 {
     try {
@@ -85,11 +96,16 @@ function connectDb($configs)
 
 }
 
+/**
+ * Disconnect from MYSQL database.
+ *
+ * @param $connection : Previously opened database connection.
+ */
 function disconnectDb($connection)
 {
     try {
         if (isConnected()) {
-            $connection->close();
+            mysqli_close($connection);
             fwrite(STDERR, "Database disconnected!\n");
         }
     } catch (Exception $exception) {
@@ -98,9 +114,48 @@ function disconnectDb($connection)
 
 }
 
+
+/**
+ * Identify if MYSQL database has been connected.
+ *
+ * @return bool
+ */
 function isConnected()
 {
     return mysqli_connect_errno() === 0;
+}
+
+
+/**
+ * Create "users" table.
+ * @param $dbConfig : Database configuration.
+ */
+function createTable($dbConfig)
+{
+    $query = "CREATE TABLE IF NOT EXISTS `users` (
+    `id` int(11) unsigned NOT NULL auto_increment,
+    `name` varchar(255) NOT NULL default '',
+    `surname` varchar(255) NOT NULL default '',
+    `email` varchar(255) NOT NULL default '',
+    PRIMARY KEY  (`id`)
+)";
+
+    $connection = connectDb($dbConfig);
+
+    try {
+        $creation = $connection->query($query);
+
+        if ($creation) {
+            fwrite(STDOUT, "Table 'users' created!\n");
+        } else {
+            fwrite(STDOUT, "Failed to create table!\n");
+        }
+    } catch (Exception $exception) {
+        $error = mysqli_connect_error();
+        fwrite(STDOUT, "Failed to create table: ${error}");
+    }
+
+    disconnectDb($connection);
 }
 
 function getDataFromFile($file)
@@ -127,9 +182,3 @@ function formatData($data)
 
     return $data;
 }
-//
-//$data = getDataFromFile('users.csv');
-//
-//print_r($data);
-
-
