@@ -7,17 +7,53 @@ require __DIR__ . '/vendor/autoload.php';
 $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
-function OpenCon()
-{
-    $conn = new mysqli($_ENV['DB_HOST'], $_ENV['DB_USERNAME'], $_ENV['DB_PASSWORD'], $_ENV['DB_DATABASE'])
-    or die("Connect failed: %s\n" . $conn->error);
+// Connect to database via command line
+$dbConfigs = [
+    'host' => $_ENV['DB_HOST'],
+    'username' => $_ENV['DB_USERNAME'],
+    'password' => $_ENV['DB_PASSWORD'],
+    'database' => $_ENV['DB_DATABASE'],
+    'port' => $_ENV['DB_PORT']
+];
 
-    return $conn;
+$shortOpts = "h";
+$shortOpts .= "u";
+$shortOpts .= "p";
+$longOpts = array(
+    "file:",
+    "create_table",
+    "dry_run"
+);
+
+$options = getopt($shortOpts, $longOpts);
+
+function connectDb($configs)
+{
+    try {
+        echo("Connecting to database...\n");
+
+        $connection = mysqli_connect($configs['host'], $configs['username'], $configs['password'], $configs['database'], $configs['port']);
+
+        if (isConnected()) {
+            echo("Database connected.\n");
+            return $connection;
+        }
+    } catch (Exception $exception) {
+        die('Connection failed.');
+    }
+
 }
 
-function CloseCon($conn)
+function disconnectDb($connection)
 {
-    $conn->close();
+    if (isConnected()) {
+        $connection->close();
+    }
+}
+
+function isConnected()
+{
+    return mysqli_connect_errno() === 0;
 }
 
 function getDataFromFile($file)
@@ -44,9 +80,9 @@ function formatData($data)
 
     return $data;
 }
-
-$data = getDataFromFile('users.csv');
-
-print_r($data);
+//
+//$data = getDataFromFile('users.csv');
+//
+//print_r($data);
 
 
