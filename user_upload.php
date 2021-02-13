@@ -68,8 +68,20 @@ if (isset($options['help'])) {
     fwrite(STDOUT, $output);
 }
 
+// Command option --create_table
 if (isset($options['create_table'])) {
     createTable($dbConfigs);
+}
+
+// Command option --file <filename>
+if (isset($options['file'])) {
+    $data = getDataFromFile($options['file']);
+
+    $connection = connectDb($dbConfigs);
+
+    rebuildDbTable($connection, $data, isset($options['dry_run']));
+
+    disconnectDb($connection);
 }
 
 
@@ -114,7 +126,6 @@ function disconnectDb($connection)
 
 }
 
-
 /**
  * Identify if MYSQL database has been connected.
  *
@@ -124,7 +135,6 @@ function isConnected()
 {
     return mysqli_connect_errno() === 0;
 }
-
 
 /**
  * Create "users" table.
@@ -158,6 +168,12 @@ function createTable($dbConfig)
     disconnectDb($connection);
 }
 
+/**
+ * Read & format data from csv file.
+ *
+ * @param $file : csv file.
+ * @return array
+ */
 function getDataFromFile($file)
 {
     $data = [];
@@ -181,4 +197,86 @@ function formatData($data)
     $data[2] = strtolower(trim($data[2]));
 
     return $data;
+}
+
+function rebuildDbTable($connection, $data, $dryRun)
+{
+    if (!$dryRun) {
+        checkTableExists($connection);
+        truncateTable($connection);
+    }
+
+    foreach ($data as $info) {
+        $user = [
+            'name' => $info[0],
+            'surname' => $info[1],
+            'email' => $info[2]
+        ];
+
+        if (isValidEmail($user['email'])) {
+            if (!$dryRun) {
+                try {
+                    insertData($connection, $user);
+                } catch (Exception $exception) {
+                    die("Errors happen when inserting user data.\n");
+                }
+            }
+        } else {
+            fwrite(STDOUT, "${user['email']} is an invalid email.\n");
+        }
+    }
+}
+
+/**
+ * Validate email.
+ *
+ * @param $email
+ * @return bool
+ */
+function isValidEmail($email)
+{
+    return filter_var($email, FILTER_VALIDATE_EMAIL);
+}
+
+/**
+ * Check if table 'users' exist.
+ *
+ * @param $connection
+ */
+function checkTableExists($connection)
+{
+    if (!$connection->query("select 1 from `users`")) {
+        die("table 'users' does not exist.\n");
+    }
+}
+
+function truncateTable($connection)
+{
+    $truncateTable = $connection->query("TRUNCATE TABLE `users`");
+
+    $truncateTable
+        ? fwrite(STDOUT, "Table cleared!\n")
+        : fwrite(STDOUT, "No rows have been cleared.\n");
+}
+
+/**
+ * Insert user data into 'users' table.
+ *
+ * @param $connection
+ * @param $data
+ */
+function insertData($connection, $data)
+{
+    $name = addslashes($data['name']);
+    $surname = addslashes($data['surname']);
+    $email = addslashes($data['email']);
+    var_dump($email);
+
+    $sql = "INSERT INTO `users` (name, surname, email) VALUES ('${name}', '${surname}', '${email}')";
+
+    if ($connection->query($sql)) {
+        fwrite(STDOUT, "New user created.\n");
+    } else {
+        fwrite(STDERR, "Errors happen when creating new user: " . $connection->error . "\n");
+    }
 }
