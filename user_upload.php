@@ -270,7 +270,6 @@ function insertData($connection, $data)
     $name = addslashes($data['name']);
     $surname = addslashes($data['surname']);
     $email = addslashes($data['email']);
-    var_dump($email);
 
     $sql = "INSERT INTO `users` (name, surname, email) VALUES ('${name}', '${surname}', '${email}')";
 
